@@ -8,6 +8,7 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Animation/A1AnimInstance.h"
 
 // Sets default values
 AA1Character::AA1Character()
@@ -39,6 +40,13 @@ void AA1Character::BeginPlay()
 			Subsystem->AddMappingContext(IMCShoulder, 0);
 		}
 	}
+
+	// 애니메이션 클래스 캐싱
+	A1AnimInstance = Cast<UA1AnimInstance>(GetMesh()->GetAnimInstance());
+	if (A1AnimInstance)
+	{
+		A1AnimInstance->OnMontageEnded.AddDynamic(this, &AA1Character::OnAttackMontageEnded);
+	}
 }
 
 // Called every frame
@@ -65,9 +73,24 @@ void AA1Character::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	}
 }
 
+void AA1Character::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsAttacking = false;
+}
+
 void AA1Character::Input_Attack(const FInputActionValue& InputValue)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Blue, TEXT("Attack"));
+	
+	if (bIsAttacking)
+		return;
+
+	bIsAttacking = true;
+
+	if (A1AnimInstance)
+	{
+		A1AnimInstance->PlayAttackMontage();
+	}
 }
 
 void AA1Character::Input_Look(const FInputActionValue& InputValue)

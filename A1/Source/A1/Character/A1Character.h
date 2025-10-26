@@ -30,6 +30,17 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+public:
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+protected:
+	UPROPERTY()
+	TObjectPtr<class UA1AnimInstance> A1AnimInstance;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Attack)
+	uint8 bIsAttacking = false;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<class USpringArmComponent> SpringArm;
