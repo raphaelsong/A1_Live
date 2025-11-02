@@ -24,10 +24,14 @@ public:
 #pragma region AnimationMontage
 public:
 	void PlayAttackMontage();
+	void PlaySkillMontage();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Montage)
 	TObjectPtr<class UAnimMontage> AttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Montage)
+	TObjectPtr<class UAnimMontage> SkillMontage;
 
 protected:
 	int32 AttackIndex = -1;
