@@ -10,6 +10,10 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Animation/A1AnimInstance.h"
+#include "Engine/DamageEvents.h"
+#include "CharacterStat/A1CharacterStatComponent.h"
+#include "Components/WidgetComponent.h"
+#include "UI/A1HpBarWidget.h"
 
 // Sets default values
 AA1Character::AA1Character()
@@ -24,6 +28,18 @@ AA1Character::AA1Character()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
+
+	// Stat Component
+	StatComponent = CreateDefaultSubobject<UA1CharacterStatComponent>(TEXT("Stat"));
+	StatComponent->SetMaxHp(100.0f);
+
+	// widget Component
+	HpBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HpBar"));
+	HpBarWidgetComponent->SetupAttachment(GetMesh());
+	HpBarWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 220.0f));
+	HpBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HpBarWidgetComponent->SetDrawSize(FVector2D(100.0f, 15.0f));
+	HpBarWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 // Called when the game starts or when spawned
@@ -40,6 +56,8 @@ void AA1Character::BeginPlay()
 		{
 			Subsystem->AddMappingContext(IMCShoulder, 0);
 		}
+
+		EnableInput(PlayerController);
 	}
 
 	// 애니메이션 클래스 캐싱
@@ -48,6 +66,29 @@ void AA1Character::BeginPlay()
 	{
 		A1AnimInstance->OnMontageEnded.AddDynamic(this, &AA1Character::OnAttackMontageEnded);
 		A1AnimInstance->OnMontageEnded.AddDynamic(this, &AA1Character::OnSkillMontageEnded);
+	}
+}
+
+void AA1Character::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (StatComponent)
+	{
+		StatComponent->OnHpZero.AddUObject(this, &AA1Character::SetDead);
+	}
+
+	if (HpBarWidgetComponent)
+	{
+		HpBarWidgetComponent->InitWidget();
+
+		UA1HpBarWidget* HpBarWidget = Cast<UA1HpBarWidget>(HpBarWidgetComponent->GetUserWidgetObject());
+		if (HpBarWidget)
+		{
+			HpBarWidget->UpdateHp(StatComponent->GetCurrentHP(), StatComponent->GetMaxHp());
+
+			StatComponent->OnHpChanged.AddUObject(HpBarWidget, &UA1HpBarWidget::UpdateHp);
+		}
 	}
 }
 
@@ -76,6 +117,34 @@ void AA1Character::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	}
 }
 
+float AA1Character::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (StatComponent)
+	{
+		StatComponent->ApplyDamage(DamageAmount);
+	}
+
+	return DamageAmount;
+}
+
+void AA1Character::SetDead()
+{
+	SetActorEnableCollision(false);
+
+	if (A1AnimInstance)
+	{
+		A1AnimInstance->PlayDeadMontage();
+	}
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		DisableInput(PlayerController);
+	}
+}
+
 void AA1Character::AttackHitCheck(float AttackRange, float AttackRadius)
 {
 	// 충돌 처리
@@ -90,9 +159,11 @@ void AA1Character::AttackHitCheck(float AttackRange, float AttackRadius)
 
 	if (IsHit)
 	{
+		const float AttackDamage = 30.0f;
 		if (OutHitResult.GetActor())
 		{
-			OutHitResult.GetActor()->Destroy();
+			FDamageEvent DamageEvent;
+			OutHitResult.GetActor()->TakeDamage(AttackDamage, DamageEvent, GetController(), this);
 		}
 	}
 
@@ -118,7 +189,12 @@ void AA1Character::SkillHitCheck(float SkillRange)
 	{
 		for (auto& OutHitResult : OutHitResults)
 		{
-			OutHitResult.GetActor()->Destroy();
+			const float AttackDamage = 50.0f;
+			if (OutHitResult.GetActor())
+			{
+				FDamageEvent DamageEvent;
+				OutHitResult.GetActor()->TakeDamage(AttackDamage, DamageEvent, GetController(), this);
+			}
 		}
 	}
 

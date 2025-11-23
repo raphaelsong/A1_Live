@@ -49,3 +49,8 @@ void UA1AnimInstance::PlaySkillMontage()
 {
 	Montage_Play(SkillMontage, 1.0f);
 }
+
+void UA1AnimInstance::PlayDeadMontage()
+{
+	Montage_Play(DeadMontage, 1.0f);
+}

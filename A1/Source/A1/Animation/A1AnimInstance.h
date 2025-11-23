@@ -25,6 +25,7 @@ public:
 public:
 	void PlayAttackMontage();
 	void PlaySkillMontage();
+	void PlayDeadMontage();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Montage)
@@ -32,6 +33,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Montage)
 	TObjectPtr<class UAnimMontage> SkillMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Montage)
+	TObjectPtr<class UAnimMontage> DeadMontage;
 
 protected:
 	int32 AttackIndex = -1;
